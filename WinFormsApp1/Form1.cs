@@ -13,18 +13,44 @@ namespace WinFormsApp1
         string searchString = "";
         string order;
         int columnIndex;
+        int? minPrice = null;
+        int? maxPrice = null;
+        
         public Form1()
         {
             InitializeComponent();
             mainList= new List<Car>();
+            comboBox1.SelectedIndex = 1;
+            textBox1.Text = "Search";
+            textBox1.ForeColor= Color.LightGray;
             PagesNumber();
             RefreshList();
+        }
+
+        private void textBox_Enter(object sender, EventArgs e)
+        {
+            if (textBox1.Text == "Search")
+            {
+                textBox1.ForeColor= Color.Black;
+                textBox1.Text = "";
+            }
+        }
+
+        private void textBox_Leave(object sender, EventArgs e)
+        {
+            if (textBox1.Text == "")
+            {
+                textBox1.ForeColor= Color.LightGray;
+                textBox1.Text = "Search";
+            }
         }
 
         public async Task FillCarsList()
         {
             HttpClient client = new HttpClient();
-            string apiText = $"{searchString}&perPage={perPages}&pageNumber={currentPage}&columnIndex={columnIndex}&order={order}"; 
+            //http://localhost:5258/api/Cars/PagingSearchSort?searchString=a&perPage=5&pageNumber=1&columnIndex=1&order=asc&minPrice=1&maxPrice=2
+            //
+            string apiText = $"{searchString}&perPage={perPages}&pageNumber={currentPage}&columnIndex={columnIndex}&order={order}&minPrice={minPrice}&maxPrice={maxPrice}"; 
             var response = await client.GetAsync("http://localhost:5258/api/Cars/PagingSearchSort?searchString=" + apiText);
             if (response.IsSuccessStatusCode)
             {
@@ -38,10 +64,13 @@ namespace WinFormsApp1
         {
             await FillCarsList();
             MainListTable.Controls.Clear();
-            foreach(var car in mainList)
+            for(int i = 0; i < mainList.Count(); i++)
             {
-                CarsListItem listItem = new CarsListItem(car);
-                listItem.Dock = DockStyle.Fill;
+                CarsListItem listItem = new CarsListItem(mainList[i]);
+                if (i != mainList.Count() - 1)
+                    listItem.Dock = DockStyle.Fill;
+                else 
+                    listItem.Dock = DockStyle.Top;
                 MainListTable.Controls.Add(listItem);
             }
             if (mainList.Count == 0)
@@ -91,19 +120,16 @@ namespace WinFormsApp1
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             perPages = int.Parse(comboBox1.SelectedItem.ToString());
+            currentPage = 1;
             RefreshList();
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
-            searchString = textBox1.Text;
+            if (textBox1.Text == "Search")
+                searchString = null;
+            else searchString = textBox1.Text;
             RefreshList();
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            //searchString = textBox1.Text;
-            //RefreshList();
         }
 
         private void SortBtn_Click(object sender, EventArgs e)
@@ -118,6 +144,22 @@ namespace WinFormsApp1
                 order = "asc";
             else order = "desc";
 
+            RefreshList();
+        }
+
+        private void button2_Click_1(object sender, EventArgs e)
+        {
+            try
+            {
+                minPrice = int.Parse(textBox2.Text);
+                maxPrice= int.Parse(textBox3.Text);
+            }
+            catch (Exception)
+            {
+                minPrice = null;
+                maxPrice = null;
+            }
+            
             RefreshList();
         }
     }
